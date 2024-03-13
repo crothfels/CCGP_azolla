@@ -1,0 +1,233 @@
+---
+title: "SNP tree and map tutorial"
+output: html_document
+date: '2022-10-20'
+---
+# Background: California Conservation Genomics of the Azolla symbiosis
+Azolla is a genus of tiny freshwater ferns with obligate, endosymbiotic nitrogen-fixing cyanobacteria, which has extraordinary economic potential in biofertilizer technology, phytoremediation, carbon sequestration, and as a biofuel (Brouwer et al. 2014). In addition, introduced species of Azolla rank among the globe’s most ecologically noxious weeds, while other species are potentially of conservation concern. Azolla is also of great importance for evolutionary biology due the insights it provides into the origins and consequences of heterospory, and its potential as a model system for studying the evolution of symbioses and organelles.
+
+We have a strong interest in the patterns of variation in Azolla in California, where up to five described species (A. caroliniana, A.filiculoides, A.mexicana, A.microphylla, and A.rubra) and at least one additional undescribed species may co-occur (Rothfels and Li, unpublished), some potentially as introductions, and others as rare natives. We are interested in the spatial variation of this diversity within California at three levels:
+
+1. The species/taxonomic level (which species are present, how can they be distinguished, what are their distributions and abundances);
+
+2. The population genomics level (where are centers of genomic diversity, what are the patterns of connectivity, are particular populations or lineages—of either the natives or the invasives—genomically depauperate);
+
+3. And at the level of the microbiome (do patterns of microbial variation mirror those of the host, do invasive Azolla have distinct microbiomes that might explain their ecological success).
+
+For each population sampled for CCGP, we will photo-document a set of plants with a standardized protocol (to capture whole-organism morphology), fix samples for micromorphological characterization (SEM), preserve samples for microbiome isolation and sequencing, and silica-dry material, in addition to taking a herbarium voucher. We will thus be able to synthesize the CCGP results with comparable morphological and microbiome datasets to produce a broad multi-level picture of Azolla diversity within California.
+
+I have aligned all of the samples to both the Azolla genome (both nuclear and chloroplast) and also the Azolla bacterial symbiont (Anabaena (or Nostoc) azollae) and called variants and filtered the variants and provides these data as VCF files. Let's see how we can use this data to make ecological and evolutionary interpretations. 
+
+# Libraries 
+Please install the following libraries
+```{r}
+library(gdsfmt)
+library(SNPRelate) 
+library(ggplot2)
+library(ggtree)
+library(phytools)
+library(ape)
+library(SeqArray)
+library(phytools)
+library(mapdata)
+library(maps) # Contains maps of USA
+library(tidyverse)
+library(viridis)
+```
+You may have to use BiocManager::install("") to install some of these!
+
+# Symbionts
+Alright, let's load the Symbiont variant calls. We are going to cluser the samples using Identity-By-State (IBS) analysis on genotypes.  
+```{r}
+Symbiont_genotypes <- "./Filter1_Symbionts_calls.vcf"
+snpgdsVCF2GDS(Symbiont_genotypes,"Symbiont_genotype.gds",method ="biallelic.only")
+genofileSymbiont <- snpgdsOpen("Symbiont_genotype.gds")
+ibs_Symbiont <- snpgdsHCluster(snpgdsIBS(genofileSymbiont,num.thread=2, autosome.only=FALSE))
+rv_ibs_Symbiont <- snpgdsCutTree(ibs_Symbiont)
+treerv_ibs_Symbiont = rv_ibs_Symbiont$dendrogram
+plot(rv_ibs_Symbiont$dendrogram,horiz=T, main ="Azolla Symbiont SNP Tree" )
+tree2 = ggtree(as.phylo(as.hclust(treerv_ibs_Symbiont)), layout="circular",color='darkgreen', branch.length="branch.length")+ geom_tiplab(size=2.5, aes(angle=angle))+ ggtitle("Azolla Symbiont SNP Tree SNP Tree")
+tree2
+hcrv_ibs_Symbiont = as.hclust(rv_ibs_Symbiont$dendrogram)
+thishcrv_ibs_Symbiont <- as.phylo(hcrv_ibs_Symbiont) 
+#write.tree(phy=thishcrv_ibs_Symbiont , file="./AzollaSymbiontIBS.newick") 
+```
+## Question 1:
+What does Identity By State mean? How is this different from Identity by Descent? What does this difference make us aware of to be careful of when we interpret this tree? 
+
+# Azolla host
+Now let's look at a dendrogram of the host, Azolla. 
+```{r}
+Azolla_genotypes <- "./Test1AzollaOnePercent.vcf"
+snpgdsVCF2GDS(Azolla_genotypes,"Azolla_genotype.gds",method ="biallelic.only")
+genofileAzolla <- snpgdsOpen("Azolla_genotype.gds")
+ibs_Azolla <- snpgdsHCluster(snpgdsIBS(genofileAzolla,num.thread=2, autosome.only=FALSE))
+rv_ibs_Azolla <- snpgdsCutTree(ibs_Azolla)
+treerv_ibs_Azolla = rv_ibs_Azolla$dendrogram
+plot(rv_ibs_Azolla$dendrogram,horiz=T, main ="Azolla  SNP Tree" )
+tree2 = ggtree(as.phylo(as.hclust(treerv_ibs_Azolla)), layout="circular",color='darkgreen', branch.length="branch.length")+ geom_tiplab(size=2.5, aes(angle=angle))+ ggtitle("Azolla  SNP Tree SNP Tree")
+tree2
+hcrv_ibs_Azolla = as.hclust(rv_ibs_Azolla$dendrogram)
+thishcrv_ibs_Azolla <- as.phylo(hcrv_ibs_Azolla) 
+#write.tree(phy=thishcrv_ibs_Azolla , file="./AzollaIBS.newick") 
+```
+## Question 2: 
+How many major clades are there? This is subjective! How many species to you think there are in California? Check on the online Jepson Manual to see how many are currently recognized. Do you agree or disagree with this current taxonomic treatment. 
+
+#Chloroplast
+Ok, so the Azolla SNPs we just analyzed come from both the nuclear genome and the chloroplast. Since the chloroplast only is around 5 per cent of the total mapped reads we can assume that the above analysis comes mostly from the nuclear genome. So we want to see what the chloroplast tree looks like too. Let's do it! 
+```{r}
+Chloroplast_genotypes <- "./Filter1_Chloroplast_calls.vcf"
+snpgdsVCF2GDS(Chloroplast_genotypes,"Chloroplast_genotype.gds",method ="biallelic.only")
+genofileChloroplast <- snpgdsOpen("Chloroplast_genotype.gds")
+ibs_Chloroplast <- snpgdsHCluster(snpgdsIBS(genofileChloroplast,num.thread=2, autosome.only=FALSE))
+rv_ibs_Chloroplast <- snpgdsCutTree(ibs_Chloroplast)
+treerv_ibs_Chloroplast = rv_ibs_Chloroplast$dendrogram
+plot(rv_ibs_Chloroplast$dendrogram,horiz=T, main ="Chloroplast Symbiont SNP Tree" )
+tree3 = ggtree(as.phylo(as.hclust(treerv_ibs_Chloroplast)), layout="circular",color='darkgreen', branch.length="branch.length")+ geom_tiplab(size=2.5, aes(angle=angle))+ ggtitle("Azolla Chloroplast SNP Tree SNP Tree")
+tree3
+hcrv_ibs_Chloroplast = as.hclust(rv_ibs_Chloroplast$dendrogram)
+thishcrv_ibs_Chloroplast <- as.phylo(hcrv_ibs_Chloroplast) 
+# write.tree(phy=thishcrv_ibs_Chloroplast , file="./AzollaChloroplastIBS.newick") 
+```
+## Question 3: 
+In want cases would the nuclear tree and the chloroplast tree not be congruent? Name a few processes that can cause discord between cpDNA trees and those based on nuclear genes. 
+
+# Compare trees
+We now have three trees. Let's compare them! 
+```{r}
+file1 <- "./AzollaIBS.nwk"
+file2 <- "./AzollaSymbiontIBS.nwk"
+file3 <- "./AzollaChloroplastIBS.newick"
+tree1 <- ape::read.tree(file1)
+tree2 <- ape::read.tree(file2)
+tree3 <- ape::read.tree(file3)
+
+association <- cbind(tree1$tip.label, tree1$tip.label)
+coplot <- cophylo(tree1, tree2, assoc = association)
+plot(coplot,link.type="curved",link.lwd=4,
+     link.lty="solid",link.col=make.transparent("red",
+     0.25))
+
+association <- cbind(tree1$tip.label, tree1$tip.label)
+coplot2 <- cophylo(tree1, tree3, assoc = association)
+plot(coplot2,link.type="curved",link.lwd=4, link.lty="solid",link.col=make.transparent("red", 0.25))
+
+association <- cbind(tree2$tip.label, tree2$tip.label)
+coplot3 <- cophylo(tree2, tree3, assoc = association)
+plot(coplot3,link.type="curved",link.lwd=4, link.lty="solid",link.col=make.transparent("red", 0.25))
+
+```
+
+## Question 4:
+Is the nuclear tree congruent with chloroplast tree? What about the nuclear tree and the symbiont tree? Does this support or not support co-diversification of host and symbiont?
+
+
+# Spatial analysis
+We also have geographic data that we can associate with these trees. 
+```{r Map}
+# Generally followed this tutorial
+# http://blog.phytools.org/2019/03/update-to-phylotomap-plot-method-to.html
+
+# Read in Data
+Azolla_data <- read.csv("Azolla_Rothfels_Plant.1.0.csv") # Copyed some data and converted to csv
+Azolla_tree <- read.tree("AzollaIBS.nwk")
+
+# Mick wants to color the dots by the clade
+
+# Plot tree to find the node labels
+#pdf("Azolla_tree.pdf", height = 20)
+#plot(Azolla_tree)
+#nodelabels()
+#dev.off()
+
+
+node <- c(114,138, 216) # Nodes I saw I guesstimated 
+colors <- c("blue","red","purple") # Color pallete need one for each node
+
+# For loop that goes through each node in vector
+# 1. trims the phylogeny to only hat node to extract names in clade 
+# 2. Assigns color corresponding in same position 
+# 3. addesss them to a dataframe
+
+tip_colors <- data.frame("X.sample_name" = character(),
+                         "clade_color" = character())
+count = 0
+for (i in node) {
+  count = count + 1
+tree_trimmed <- extract.clade(Azolla_tree,
+                          node = i)
+names_trimmed <- tree_trimmed$tip.label
+
+tip_colors_temp <- data.frame("clade_color" = rep(colors[count],length(names_trimmed)),
+                              "X.sample_name" = names_trimmed)
+
+tip_colors <- rbind(tip_colors,tip_colors_temp)
+}
+
+# Check for duplicates - If THERE ARE CODE WON'T WORK! 
+tip_colors$X.sample_name[duplicated(tip_colors$X.sample_name)]
+
+
+# Merge this with the regulre data
+Azolla_data <- merge(Azolla_data,tip_colors, by = "X.sample_name")
+
+# Extract Lat Long for making the map
+Azolla_data$lat <- gsub(pattern = "(.*), -.*",
+                        replacement = "\\1",
+                        x=Azolla_data$lat_lon)
+Azolla_data$long <- gsub(pattern = ".*, (-.*)",
+                        replacement = "\\1",
+                        x=Azolla_data$lat_lon)
+
+
+
+# Formate lat and long same as phylo.to.map accepts
+Azolla_data_plotting <- data.frame("lat" = as.numeric(Azolla_data$lat),
+                                    "long"= as.numeric(Azolla_data$long)) %>%
+  as.matrix()
+rownames(Azolla_data_plotting) <- Azolla_data$X.sample_name
+
+Azolla_data_plotting
+
+
+
+
+
+obj_USA<-phylo.to.map(tree = Azolla_tree,
+                  coords = Azolla_data_plotting,
+                  database="state", # Will generate a county map. Can change to "state" for a USA map
+                  #regions= "california", 
+                  plot=FALSE,rotate=FALSE)
+
+obj_California<-phylo.to.map(tree = Azolla_tree,
+                      coords = Azolla_data_plotting,
+                      database="county", 
+                      regions= "california", 
+                      plot=FALSE,rotate=FALSE)
+
+# Coloring! 
+## This is a fancy coloring from Liam Revels Tutorial
+cols<-setNames(sample(viridis(n=Ntip(Azolla_tree))),
+               Azolla_tree$tip.label)
+
+cols <- setNames(Azolla_data$clade_color,Azolla_data$X.sample_name)
+
+## Color by clade like Mick wants
+cols <- setNames(tip_colors$clade_color,tip_colors$X.sample_name)
+
+
+
+
+# Plot it! 
+#pdf("Azolla_tree_map.pdf")
+plot(obj_USA,direction="rightwards",
+     colors=cols,ftype="off",cex.points=c(0,1.5),
+     pts=FALSE)
+plot(obj_California,direction="rightwards",
+     colors=cols,ftype="off",cex.points=c(0,1.5),
+     pts=FALSE)
+#dev.off()
+```
+## Question 5:
+Are there any geographical patterns you can see? Does this make you reassess how to evaluate how many species there are in California? Why?

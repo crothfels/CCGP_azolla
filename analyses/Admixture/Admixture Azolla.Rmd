@@ -1,0 +1,78 @@
+---
+title: "Azolla admixture"
+output: html_notebook
+---
+
+
+```{r}
+library(reshape2)
+library(plyr)
+library(stringr)
+library(ggplot2)
+library(tidyverse)
+library(RColorBrewer)
+library(pophelper)
+library(dplyr)
+library(tibble)
+library(purrr)
+```
+
+
+```{r k=2}
+admixture <- read.table("/Users/michaelsong/Test1AzollaOnePercentcopy.4.Q")
+
+id <- read.table("/Users/michaelsong/samdf.txt",header=FALSE)
+admixture <- cbind(id,admixture)
+colnames(admixture) <- c("IND","POP","K1","K2","K3","K4")
+
+kdf2 <- read.csv("/Users/michaelsong/admixture2.csv")
+k2plot <-
+  ggplot(kdf2, aes(factor(sampleID), prob, fill = factor(popGroup))) +
+  geom_col(color = "gray") +
+  facet_grid(~fct_inorder(species), switch = "x", scales = "free", space = "free") +
+  theme_minimal() + labs(x = "Individuals", title = "K=2", y = "Ancestry") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(expand = expand_scale(add = 1)) 
+  
+
+```
+
+```{r k=3}
+kdf3 <- read.csv("/Users/michaelsong/admixture3.csv")
+k3plot.s <-
+  ggplot(kdf3, aes(factor(sampleID), prob, fill = factor(popGroup))) +
+  geom_col(color = "gray") +
+  facet_grid(~fct_inorder(species), switch = "x", scales = "free", space = "free") +
+  theme_minimal() + labs(x = "Individuals", title = "K=3", y = "Ancestry") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(expand = expand_scale(add = 1)) 
+
+k3plot.l <-
+  ggplot(kdf3, aes(factor(sampleID), prob, fill = factor(popGroup))) +
+  geom_col(color = "gray") +
+  facet_grid(~fct_inorder(location), switch = "x", scales = "free", space = "free") +
+  theme_minimal() + labs(x = "Individuals", title = "K=3", y = "Ancestry") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(expand = expand_scale(add = 1)) 
+  
+```
+
+```{r k=4}
+kdf4 <- read.csv("/Users/michaelsong/admixture4.csv")
+k4plot.s <-
+  ggplot(kdf4, aes(factor(sampleID), prob, fill = factor(popGroup))) +
+  geom_col(color = "gray") +
+  facet_grid(~fct_inorder(species), switch = "x", scales = "free", space = "free") +
+  theme_minimal() + labs(x = "Individuals", title = "K=4", y = "Ancestry") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(expand = expand_scale(add = 1)) 
+
+k4plot.l <-
+  ggplot(kdf4, aes(factor(sampleID), prob, fill = factor(popGroup))) +
+  geom_col(color = "gray") +
+  facet_grid(~fct_inorder(location), switch = "x", scales = "free", space = "free") +
+  theme_minimal() + labs(x = "Individuals", title = "K=4", y = "Ancestry") +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(expand = expand_scale(add = 1)) 
+  
+```

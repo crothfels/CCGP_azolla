@@ -1,0 +1,18 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(ggplot2)
+test <- read.table("~/output1.het.txt", header = TRUE)
+
+ggplot(test, aes(x = F)) +
+  geom_histogram(aes(color = Species, fill = Species), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#FF0000")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800", "#FF0000"))
+
+
+```
